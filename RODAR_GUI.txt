@@ -1,0 +1,36 @@
+================================================================================
+📄 PASSO A PASSO PARA EXECUTAR A INTERFACE GRÁFICA (GUI)
+================================================================================
+
+Siga estas etapas no terminal do seu Mac para abrir o painel visual:
+
+--------------------------------------------------------------------------------
+PASSO 1: Abra o terminal e entre na pasta correta do projeto
+--------------------------------------------------------------------------------
+Copie e cole este comando no seu terminal e aperte ENTER:
+
+    cd ~/Desktop/PDFTOMD
+
+--------------------------------------------------------------------------------
+PASSO 2: Instale a biblioteca do Streamlit e outras dependências
+--------------------------------------------------------------------------------
+Execute o instalador copiando este comando e apertando ENTER:
+
+    pip3 install -r requirements.txt
+
+--------------------------------------------------------------------------------
+PASSO 3: Inicialize a interface gráfica (GUI)
+--------------------------------------------------------------------------------
+Execute a aplicação copiando este comando e apertando ENTER:
+
+    python3 -m streamlit run app_gui.py
+
+--------------------------------------------------------------------------------
+💡 O QUE ACONTECE DEPOIS?
+--------------------------------------------------------------------------------
+- Uma aba será aberta automaticamente no seu navegador de internet padrão.
+- Se o navegador não abrir sozinho, copie e abra este link: http://localhost:8501
+- Pelo painel, você poderá escolher os arquivos, ajustar o slider de threads,
+  iniciar a conversão acompanhando os logs em tempo real e ler os Markdowns
+  gerados.
+================================================================================
