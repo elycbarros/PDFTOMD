@@ -7,10 +7,35 @@ opcionalmente, gera Skills de Agente estruturadas a partir desses Markdowns
 (Passo 2), prontas para uso no ChatGPT, Gemini, Claude Code, Copilot CLI etc.
 
 ================================================================================
-PASSO 1 — INSTALAR DEPENDÊNCIAS
+⚡ ATALHOS: EXECUÇÃO DIRETA EM UMA ÚNICA LINHA
 ================================================================================
 
-    pip3 install -r requirements.txt
+Se você já instalou o ambiente virtual, não precisa ativá-lo manualmente. 
+Você pode rodar os comandos diretamente:
+
+  • Para converter PDFs (CLI):
+    .venv/bin/python converter.py
+
+  • Para iniciar a Interface Visual (Streamlit GUI):
+    .venv/bin/streamlit run app_gui.py
+
+================================================================================
+PASSO 1 — CRIAR AMBIENTE VIRTUAL E INSTALAR DEPENDÊNCIAS
+================================================================================
+
+Recomendamos usar o ambiente virtual do Python 3.11+ para garantir que o 
+pipeline execute usando bibliotecas atualizadas de OpenSSL, evitando avisos no terminal:
+
+    # 1. Crie o ambiente virtual (usando explicitamente python3.11 ou superior)
+    python3.11 -m venv .venv
+
+    # 2. Ative o ambiente virtual
+    source .venv/bin/activate
+
+    # 3. Instale as dependências
+    pip install -r requirements.txt
+
+*Nota: Sempre que abrir um novo terminal para trabalhar no projeto de forma convencional, você pode rodar: `source .venv/bin/activate`*
 
 ================================================================================
 PASSO 2 — CONFIGURAR O AMBIENTE
@@ -31,14 +56,17 @@ PASSO 3 — CONVERTER PDFs EM MARKDOWN  (sem API, 100% local)
 
 Coloque seus PDFs em: ./pdf_entrada/
 
-A) Execução padrão:
-    python3 converter.py
+A) Execução rápida (sem precisar ativar o venv):
+    .venv/bin/python converter.py
 
-B) Simulação (veja o que seria processado sem executar):
-    python3 converter.py --dry-run
+B) Execução com ambiente virtual já ativo:
+    python converter.py
 
-C) Com número customizado de threads:
-    python3 converter.py --workers 2
+C) Simulação (veja o que seria processado sem executar):
+    .venv/bin/python converter.py --dry-run
+
+D) Com número customizado de threads:
+    .venv/bin/python converter.py --workers 2
 
 Os Markdowns serão gerados em: ./markdown_saida/
 
@@ -53,6 +81,10 @@ OPÇÃO GUI — INTERFACE GRÁFICA INTERATIVA (Streamlit)
 Você pode rodar toda a conversão através de uma interface interativa no navegador,
 com monitoramento em tempo real, painel de métricas e leitor de Markdown integrado:
 
+    # Execução rápida (sem precisar ativar o venv):
+    .venv/bin/streamlit run app_gui.py
+
+    # Execução convencional (com o venv ativo):
     streamlit run app_gui.py
 
 Isso abrirá automaticamente o painel no endereço: http://localhost:8501
@@ -68,9 +100,9 @@ OPÇÃO A: usar o gerar_skills.py (requer GEMINI_API_KEY no .env)
 ────────────────────────────────────────────────────────────────────────────────
 
 1. Skill individual por PDF (1 skill por livro):
-       python3 gerar_skills.py
+       .venv/bin/python gerar_skills.py
 
-2. Skill temática unificada por grupo de livros (Abordagem A):
+2. Skill temática unificada por grupo de livros:
    Organize os PDFs em subpastas por tema ANTES de converter:
 
        pdf_entrada/
@@ -82,11 +114,11 @@ OPÇÃO A: usar o gerar_skills.py (requer GEMINI_API_KEY no .env)
                └── guarda_compartilhada.pdf
 
    Depois converta e gere as Skills temáticas:
-       python3 converter.py
-       python3 gerar_skills.py --temas-auto
+       .venv/bin/python converter.py
+       .venv/bin/python gerar_skills.py --temas-auto
 
 3. Para regenerar Skills que já existem:
-       python3 gerar_skills.py --forcar
+       .venv/bin/python gerar_skills.py --forcar
 
 As Skills serão geradas em: ./skills_saida/
 
@@ -110,6 +142,7 @@ e OCR calibrado para português — qualidade muito superior ao PDF bruto.
 ESTRUTURA DO PROJETO
 ================================================================================
 
+  .venv/              → Ambiente virtual isolado do Python 3.11+
   converter.py        → Converte PDFs em Markdown (local, sem API)
   gerar_skills.py     → Gera Skills a partir dos Markdowns (requer API Gemini)
   skill_compiler.py   → Biblioteca de funções usada pelo gerar_skills.py
