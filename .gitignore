@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ambiente Virtual
+.venv/
+venv/
+env/
+
+# Configurações locais e Sensíveis
+.env
+
+# Logs
+*.log
+conversao.log
+
+# Diretórios de saída de arquivos convertidos
+markdown_saida/
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db

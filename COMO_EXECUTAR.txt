@@ -1,0 +1,111 @@
+================================================================================
+📄 INSTRUÇÕES PARA EXECUTAR O PIPELINE COMPLETO
+================================================================================
+
+Este projeto converte PDFs em Markdown de alta qualidade (Passo 1) e, 
+opcionalmente, gera Skills de Agente estruturadas a partir desses Markdowns
+(Passo 2), prontas para uso no ChatGPT, Gemini, Claude Code, Copilot CLI etc.
+
+================================================================================
+PASSO 1 — INSTALAR DEPENDÊNCIAS
+================================================================================
+
+    pip3 install -r requirements.txt
+
+================================================================================
+PASSO 2 — CONFIGURAR O AMBIENTE
+================================================================================
+
+Copie o arquivo de exemplo e configure suas variáveis:
+
+    cp .env.example .env
+
+Edite o arquivo .env. As configurações obrigatórias são:
+  - CONVERTER_WORKERS   → número de threads paralelas (padrão: 4)
+  - GEMINI_API_KEY      → necessário APENAS se for usar o gerar_skills.py
+                          Obtenha gratuitamente em: https://aistudio.google.com/
+
+================================================================================
+PASSO 3 — CONVERTER PDFs EM MARKDOWN  (sem API, 100% local)
+================================================================================
+
+Coloque seus PDFs em: ./pdf_entrada/
+
+A) Execução padrão:
+    python3 converter.py
+
+B) Simulação (veja o que seria processado sem executar):
+    python3 converter.py --dry-run
+
+C) Com número customizado de threads:
+    python3 converter.py --workers 2
+
+Os Markdowns serão gerados em: ./markdown_saida/
+
+💡 IDEMPOTÊNCIA: O script registra quais PDFs já foram convertidos no arquivo
+   'manifest.json'. Execuções seguintes ignorarão arquivos já convertidos.
+   Para reprocessar tudo do zero, delete o arquivo 'manifest.json'.
+
+================================================================================
+PASSO 4 — GERAR SKILLS  (requer API do Gemini ou book-to-skill)
+================================================================================
+
+Você tem DUAS opções para gerar as Skills. Escolha conforme sua preferência:
+
+────────────────────────────────────────────────────────────────────────────────
+OPÇÃO A: usar o gerar_skills.py (requer GEMINI_API_KEY no .env)
+────────────────────────────────────────────────────────────────────────────────
+
+1. Skill individual por PDF (1 skill por livro):
+       python3 gerar_skills.py
+
+2. Skill temática unificada por grupo de livros (Abordagem A):
+   Organize os PDFs em subpastas por tema ANTES de converter:
+
+       pdf_entrada/
+         ├── inventarios/
+         │     ├── livro_inventario_judicial.pdf
+         │     └── arrolamento_bens.pdf
+         └── divorcio/
+               ├── divorcio_extrajudicial.pdf
+               └── guarda_compartilhada.pdf
+
+   Depois converta e gere as Skills temáticas:
+       python3 converter.py
+       python3 gerar_skills.py --temas-auto
+
+3. Para regenerar Skills que já existem:
+       python3 gerar_skills.py --forcar
+
+As Skills serão geradas em: ./skills_saida/
+
+────────────────────────────────────────────────────────────────────────────────
+OPÇÃO B: usar o book-to-skill (requer Claude Code / OpenCode)
+────────────────────────────────────────────────────────────────────────────────
+
+O book-to-skill (https://github.com/virgiliojr94/book-to-skill) aceita 
+Markdown como entrada. Após o Passo 3, alimente-o com os .md gerados:
+
+1. Skill de um livro específico:
+       /book-to-skill ./markdown_saida/nome_livro_xxxxxxxx/nome_livro_xxxxxxxx.md
+
+2. Skill de todos os livros de uma pasta:
+       /book-to-skill "./markdown_saida/**/*.md" minha-biblioteca
+
+Os Markdowns do converter.py chegam ao book-to-skill com tabelas estruturadas 
+e OCR calibrado para português — qualidade muito superior ao PDF bruto.
+
+================================================================================
+ESTRUTURA DO PROJETO
+================================================================================
+
+  converter.py        → Converte PDFs em Markdown (local, sem API)
+  gerar_skills.py     → Gera Skills a partir dos Markdowns (requer API Gemini)
+  skill_compiler.py   → Biblioteca de funções usada pelo gerar_skills.py
+  .env                → Suas configurações locais (não versionar no git!)
+  .env.example        → Template de configuração
+  pdf_entrada/        → Coloque seus PDFs aqui
+  markdown_saida/     → Markdowns gerados automaticamente
+  skills_saida/       → Skills geradas automaticamente
+
+================================================================================

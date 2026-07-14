@@ -1,0 +1,5 @@
+docling
+tqdm
+python-dotenv
+pypdf
+google-generativeai
