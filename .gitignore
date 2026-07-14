@@ -17,6 +17,7 @@ conversao.log
 
 # Diretórios de saída de arquivos convertidos
 markdown_saida/
+skills_saida/
 
 # Sistema Operacional
 .DS_Store
