@@ -47,6 +47,17 @@ Os Markdowns serão gerados em: ./markdown_saida/
    Para reprocessar tudo do zero, delete o arquivo 'manifest.json'.
 
 ================================================================================
+OPÇÃO GUI — INTERFACE GRÁFICA INTERATIVA (Streamlit)
+================================================================================
+
+Você pode rodar toda a conversão através de uma interface interativa no navegador,
+com monitoramento em tempo real, painel de métricas e leitor de Markdown integrado:
+
+    streamlit run app_gui.py
+
+Isso abrirá automaticamente o painel no endereço: http://localhost:8501
+
+================================================================================
 PASSO 4 — GERAR SKILLS  (requer API do Gemini ou book-to-skill)
 ================================================================================
 
