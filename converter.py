@@ -12,8 +12,8 @@ Utiliza a biblioteca Docling (IBM) para extrair texto (OCR) e tabelas
 de arquivos PDF de forma concorrente, controlando o estado de conversão via
 manifest JSON para garantir idempotência e tolerância a falhas.
 
-Autor: Seu Nome
-Data: 2026
+Autor: Ely do Carmo Barros  
+Data: 2026-07-14
 """
 
 from __future__ import annotations
@@ -77,7 +77,8 @@ FORMATOS_SUPORTADOS: tuple[str, ...] = (
 
 # Limitação inteligente de concorrência por consumo de memória
 LIMITE_CONCORRENCIA_PESADOS = 2
-LIMIAR_ARQUIVO_PESADO = 5 * 1024 * 1024  # 5 MB (tamanho a partir do qual o arquivo é considerado pesado)
+LIMIAR_ARQUIVO_PESADO = 5 * 1024 * 1024       # 5 MB (consome 1 slot do semáforo)
+LIMIAR_ARQUIVO_CRITICO = 50 * 1024 * 1024     # 50 MB (consome ambos os slots, rodando isoladamente)
 heavy_semaphore = threading.Semaphore(LIMITE_CONCORRENCIA_PESADOS)
 
 # Isolamento de recursos de threads (Thread-Local Storage)
@@ -193,18 +194,31 @@ def processar_arquivo(arquivo: Path, saida_base: Path) -> tuple[str, str | None]
 
     tamanho_bytes = arquivo.stat().st_size
     e_pesado = tamanho_bytes > LIMIAR_ARQUIVO_PESADO
-    adquiriu_semaforo = False
+    e_critico = tamanho_bytes > LIMIAR_ARQUIVO_CRITICO
+    slots_adquiridos = 0
 
     try:
-        if e_pesado:
+        if e_critico:
+            log.info(
+                "ARQUIVO CRÍTICO detectado (%d MB): %s. Bloqueando todos os slots de processamento pesado para isolamento de RAM...",
+                int(tamanho_bytes / (1024 * 1024)),
+                arquivo.name
+            )
+            # Adquire ambos os slots do semáforo consecutivamente
+            heavy_semaphore.acquire()
+            slots_adquiridos += 1
+            heavy_semaphore.acquire()
+            slots_adquiridos += 1
+            log.info("Modo de isolamento ativado! Iniciando processamento do arquivo crítico: %s", arquivo.name)
+        elif e_pesado:
             log.info(
                 "Arquivo pesado detectado (%d MB): %s. Aguardando slot de processamento livre...",
                 int(tamanho_bytes / (1024 * 1024)),
                 arquivo.name
             )
             heavy_semaphore.acquire()
-            adquiriu_semaforo = True
-            log.info("Slot livre obtido! Iniciando processamento pesado: %s", arquivo_pdf.name)
+            slots_adquiridos += 1
+            log.info("Slot livre obtido! Iniciando processamento pesado: %s", arquivo.name)
 
         subpasta_destino.mkdir(parents=True, exist_ok=True)
 
@@ -231,6 +245,40 @@ def processar_arquivo(arquivo: Path, saida_base: Path) -> tuple[str, str | None]
         except Exception as e:
             log.warning("Não foi possível tornar as imagens relativas em %s: %s", arquivo_md.name, e)
 
+        # Extração e salvamento de metadados estruturados para RAG/GPTs
+        try:
+            meta_dados = {
+                "nome_arquivo": arquivo.name,
+                "caminho_original": str(arquivo.resolve()),
+                "tamanho_bytes": tamanho_bytes,
+                "hash_sha256": conteudo_hash,
+                "formato": arquivo.suffix[1:].upper(),
+                "paginas": resultado.document.num_pages() if hasattr(resultado.document, "num_pages") and callable(resultado.document.num_pages) else getattr(resultado.document, "num_pages", None),
+            }
+
+            # Se for PDF, tenta extrair metadados extras via pypdf
+            if arquivo.suffix.lower() == ".pdf":
+                try:
+                    from pypdf import PdfReader
+                    reader = PdfReader(arquivo)
+                    pdf_info = reader.metadata
+                    if pdf_info:
+                        meta_dados["pdf_metadados"] = {
+                            "titulo": pdf_info.title or "",
+                            "autor": pdf_info.author or "",
+                            "assunto": pdf_info.subject or "",
+                            "criador": pdf_info.creator or "",
+                            "produtor": pdf_info.producer or "",
+                        }
+                except Exception as pypdf_err:
+                    log.debug("Não foi possível extrair metadados adicionais via pypdf: %s", pypdf_err)
+
+            arquivo_meta = subpasta_destino / "metadata.json"
+            with open(arquivo_meta, "w", encoding="utf-8") as f:
+                json.dump(meta_dados, f, ensure_ascii=False, indent=2)
+        except Exception as meta_err:
+            log.warning("Erro ao gerar ou salvar metadados para %s: %s", arquivo.name, meta_err)
+
         return conteudo_hash, None
 
     except Exception as e:
@@ -239,9 +287,10 @@ def processar_arquivo(arquivo: Path, saida_base: Path) -> tuple[str, str | None]
         return conteudo_hash, str(e)
 
     finally:
-        if adquiriu_semaforo:
+        for _ in range(slots_adquiridos):
             heavy_semaphore.release()
-            log.info("Processamento pesado concluído. Slot liberado para: %s", arquivo.name)
+        if slots_adquiridos > 0:
+            log.info("Processamento de arquivo pesado/crítico concluído. %d slot(s) liberado(s) para: %s", slots_adquiridos, arquivo.name)
 
 
 def converter_alta_precisao(
